@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Symmetric Timetable Clock</title>
+  <title>Colored Timetable Clock Wheel</title>
   <style>
     body {
       text-align: center;
@@ -16,8 +16,8 @@
   </style>
 </head>
 <body>
-  <h1>Symmetric Timetable Clock</h1>
-  <canvas id="clock" width="500" height="500"></canvas>
+  <h1>Colored Timetable Clock Wheel</h1>
+  <canvas id="clock" width="600" height="600"></canvas>
 
   <script>
     const timetable = [
@@ -40,65 +40,21 @@
       ["22:30", "Sleep"]
     ];
 
+    const colors = [
+      "#ff9999", "#ffcc99", "#ffff99", "#ccff99", "#99ff99",
+      "#99ffcc", "#99ffff", "#99ccff", "#9999ff", "#cc99ff",
+      "#ff99ff", "#ff99cc", "#ffccff", "#e6e6e6", "#ffd699",
+      "#d9ffcc", "#c2c2f0", "#f5b7b1", "#aed6f1", "#a3e4d7"
+    ];
+
     const canvas = document.getElementById("clock");
     const ctx = canvas.getContext("2d");
     const radius = canvas.width / 2;
+    const totalEvents = timetable.length;
 
-    function drawClock() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.translate(radius, radius);
-
-      // Outer circle
-      ctx.beginPath();
-      ctx.arc(0, 0, radius - 10, 0, 2 * Math.PI);
-      ctx.strokeStyle = "#000";
-      ctx.lineWidth = 4;
-      ctx.stroke();
-
-      // Draw events evenly spaced
-      ctx.font = "12px Arial";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      const totalEvents = timetable.length;
-
-      timetable.forEach((item, index) => {
-        const angle = (index / totalEvents) * 2 * Math.PI - Math.PI / 2;
-        const x = Math.cos(angle) * (radius - 40);
-        const y = Math.sin(angle) * (radius - 40);
-
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle + Math.PI / 2);
-        ctx.fillStyle = "#000";
-        ctx.fillText(item[1], 0, 0);
-        ctx.restore();
-      });
-
-      // Draw red hand for current event
+    function getCurrentEventIndex() {
       const now = new Date();
-      const currentIndex = timetable.findIndex(([time]) => {
-        const [h, m] = time.split(":").map(Number);
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        const eventMinutes = h * 60 + m;
-        return nowMinutes <= eventMinutes;
-      });
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      let currentIndex = 0;
 
-      const handIndex = currentIndex === -1 ? 0 : currentIndex;
-      const handAngle = (handIndex / totalEvents) * 2 * Math.PI - Math.PI / 2;
-
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(handAngle) * (radius - 60), Math.sin(handAngle) * (radius - 60));
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 3;
-      ctx.stroke();
-
-      ctx.restore();
-    }
-
-    setInterval(drawClock, 1000);
-    drawClock();
-  </script>
-</body>
-</html>
+      for (let i = 0; i < totalEv
