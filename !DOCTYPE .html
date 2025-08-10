@@ -56,21 +56,25 @@
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      // Draw timetable events
-      ctx.font = "14px Arial";
+      // Draw timetable events symmetrically
+      ctx.font = "12px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillStyle = "#000";
 
       for (let time in timetable) {
         const [h, m] = time.split(":").map(Number);
         const totalMinutes = h * 60 + m;
-        const angle = (totalMinutes / 1440) * 2 * Math.PI - Math.PI / 2; // start at top
+        const angle = (totalMinutes / 1440) * 2 * Math.PI - Math.PI / 2;
 
         const x = Math.cos(angle) * (radius - 40);
         const y = Math.sin(angle) * (radius - 40);
 
-        ctx.fillText(timetable[time], x, y);
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(angle + Math.PI / 2); // Rotate so text is upright
+        ctx.fillStyle = "#000";
+        ctx.fillText(timetable[time], 0, 0);
+        ctx.restore();
       }
 
       // Draw current time hand
