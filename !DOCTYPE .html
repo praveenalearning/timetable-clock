@@ -1,118 +1,213 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Colored Timetable Clock Wheel</title>
+  <meta charset="utf-8" />
+  <title>Timetable Wheel — horizontal labels + correct hand</title>
   <style>
     body {
-      text-align: center;
-      background-color: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
       font-family: Arial, sans-serif;
+      background: #f4f4f4;
+      margin: 20px;
     }
+    #clockWrap { width: 640px; }
     canvas {
-      background-color: white;
+      width: 640px;         /* CSS size */
+      height: 640px;
+      background: white;
       border-radius: 50%;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+      display:block;
+      margin: 0 auto;
     }
+    .legend { font-size: 14px; color: #333; }
   </style>
 </head>
 <body>
-  <h1>Colored Timetable Clock Wheel</h1>
-  <canvas id="clock" width="600" height="600"></canvas>
+  <h2>Timetable Wheel</h2>
+  <div id="clockWrap">
+    <canvas id="clock"></canvas>
+  </div>
+  <div class="legend">Times on the outer circumference — event names are horizontal inside each colored sector.</div>
 
-  <script>
-    const timetable = [
-      ["05:00", "Yoga"],
-      ["05:20", "Study"],
-      ["06:30", "Fresh Up"],
-      ["07:00", "Physics"],
-      ["11:00", "Break"],
-      ["11:10", "Maths"],
-      ["13:10", "Lunch"],
-      ["13:30", "Sleep"],
-      ["13:45", "Study"],
-      ["14:00", "Maths"],
-      ["16:00", "Optional"],
-      ["17:00", "Break"],
-      ["17:30", "Chemistry"],
-      ["19:30", "Dinner"],
-      ["20:00", "Chemistry"],
-      ["22:10", "Study"],
-      ["22:30", "Sleep"]
-    ];
+<script>
+/* ---------- timetable (HH:MM, 24-hour) ---------- */
+const timetable = [
+  ["05:00", "Yoga"],
+  ["05:20", "Study"],
+  ["06:30", "Fresh Up"],
+  ["07:00", "Physics"],
+  ["11:00", "Break"],
+  ["11:10", "Maths"],
+  ["13:10", "Lunch"],
+  ["13:30", "Sleep"],
+  ["13:45", "Study"],
+  ["14:00", "Maths"],
+  ["16:00", "Optional"],
+  ["17:00", "Break"],
+  ["17:30", "Chemistry"],
+  ["19:30", "Dinner"],
+  ["20:00", "Chemistry"],
+  ["22:10", "Study"],
+  ["22:30", "Sleep"]
+];
 
-    const colors = [
-      "#FF9999", "#FFCC99", "#FFFF99", "#CCFF99", "#99FF99",
-      "#99FFCC", "#99FFFF", "#99CCFF", "#9999FF", "#CC99FF",
-      "#FF99FF", "#FF99CC", "#FFD1DC", "#E6E6FA", "#FFD699",
-      "#D9FFCC", "#C2C2F0", "#F5B7B1", "#AED6F1", "#A3E4D7"
-    ];
+/* distinct colors (will repeat if more events) */
+const colors = [
+  "#FF9999","#FFCC99","#FFFF99","#CCFF99","#99FF99",
+  "#99FFCC","#99FFFF","#99CCFF","#9999FF","#CC99FF",
+  "#FF99FF","#FF99CC","#FFD1DC","#E6E6FA","#FFD699",
+  "#D9FFCC","#C2C2F0","#F5B7B1"
+];
 
-    const canvas = document.getElementById("clock");
-    const ctx = canvas.getContext("2d");
-    const radius = canvas.width / 2;
-    const totalEvents = timetable.length;
-    const sliceAngle = (2 * Math.PI) / totalEvents;
+/* ---------- setup HiDPI canvas ---------- */
+const canvas = document.getElementById('clock');
+const ctx = canvas.getContext('2d');
+const CSS_W = 640;
+const CSS_H = 640;
+const DPR = window.devicePixelRatio || 1;
+canvas.style.width = CSS_W + "px";
+canvas.style.height = CSS_H + "px";
+canvas.width = Math.floor(CSS_W * DPR);
+canvas.height = Math.floor(CSS_H * DPR);
+ctx.scale(DPR, DPR);
 
-    function drawClock() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.save();
-      ctx.translate(radius, radius);
+/* center and radii (in CSS pixels) */
+const cx = CSS_W / 2;
+const cy = CSS_H / 2;
+const radius = Math.min(CSS_W, CSS_H) / 2;
 
-      // Draw sectors
-      timetable.forEach((item, index) => {
-        const startAngle = index * sliceAngle - Math.PI / 2;
-        const endAngle = startAngle + sliceAngle;
+/* pre-process events into minutes and sort (safety) */
+function toMinutes(t) {
+  const [h,m] = t.split(':').map(Number);
+  return h*60 + m;
+}
+const events = timetable
+  .map(([time, name]) => ({time, name, minutes: toMinutes(time)}))
+  .sort((a,b) => a.minutes - b.minutes);
 
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.arc(0, 0, radius - 10, startAngle, endAngle);
-        ctx.closePath();
-        ctx.fillStyle = colors[index % colors.length];
-        ctx.fill();
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 2;
-        ctx.stroke();
+const N = events.length;
+const sliceAngle = (2 * Math.PI) / N;
 
-        // Time label at boundary
-        const timeX = Math.cos(startAngle) * (radius - 20);
-        const timeY = Math.sin(startAngle) * (radius - 20);
-        ctx.font = "14px Arial";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "black";
-        ctx.fillText(item[0], timeX, timeY);
+/* ---------- drawing ---------- */
+function draw() {
+  // clear (CSS pixels)
+  ctx.clearRect(0, 0, CSS_W, CSS_H);
 
-        // Event label inside sector
-        const midAngle = startAngle + sliceAngle / 2;
-        const eventX = Math.cos(midAngle) * (radius / 2);
-        const eventY = Math.sin(midAngle) * (radius / 2);
-        ctx.save();
-        ctx.translate(eventX, eventY);
-        ctx.rotate(midAngle + Math.PI / 2);
-        ctx.font = "bold 14px Arial";
-        ctx.fillStyle = "black";
-        ctx.fillText(item[1], 0, 0);
-        ctx.restore();
-      });
+  // draw all sectors with colors and black borders
+  ctx.save();
+  ctx.translate(cx, cy);
 
-      // Draw moving red hand based on real time
-      const now = new Date();
-      const totalMinutes = now.getHours() * 60 + now.getMinutes();
-      const dayFraction = totalMinutes / (24 * 60);
-      const handAngle = dayFraction * 2 * Math.PI - Math.PI / 2;
+  for (let i=0; i<N; i++) {
+    const startA = i * sliceAngle - Math.PI/2;
+    const endA   = startA + sliceAngle;
+    // fill
+    ctx.beginPath();
+    ctx.moveTo(0,0);
+    ctx.arc(0,0, radius - 10, startA, endA);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+    // stroke border
+    ctx.strokeStyle = "#000";
+    ctx.lineWidth = 2;
+    ctx.stroke();
 
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(handAngle) * (radius - 60), Math.sin(handAngle) * (radius - 60));
-      ctx.strokeStyle = "red";
-      ctx.lineWidth = 4;
-      ctx.stroke();
+    // time label on outer circumference (at sector midpoint)
+    const midA = startA + sliceAngle/2;
+    const timeR = radius - 22;
+    const tx = Math.cos(midA) * timeR;
+    const ty = Math.sin(midA) * timeR;
+    ctx.font = "14px Arial";
+    ctx.fillStyle = "#000";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(events[i].time, tx, ty);
 
-      ctx.restore();
+    // event name horizontally inside the sector (no rotation)
+    const innerR = radius * 0.54;
+    const ex = Math.cos(midA) * innerR;
+    const ey = Math.sin(midA) * innerR;
+    // optionally shrink font if name too wide for slice
+    let fontSize = 16;
+    ctx.font = `bold ${fontSize}px Arial`;
+    // measure and adjust to fit width of slice arc (approx)
+    const maxWidth = Math.max(60, (sliceAngle * (radius * 0.6)) * 0.9);
+    while (ctx.measureText(events[i].name).width > maxWidth && fontSize > 8) {
+      fontSize -= 1;
+      ctx.font = `bold ${fontSize}px Arial`;
     }
+    ctx.fillStyle = "#000";
+    ctx.fillText(events[i].name, ex, ey);
+  }
 
-    setInterval(drawClock, 1000);
-    drawClock();
-  </script>
+  // determine current event index (last event whose start <= now), with wrap
+  const now = new Date();
+  const nowMinutesRaw = now.getHours()*60 + now.getMinutes() + now.getSeconds()/60;
+  // find index
+  let currentIndex = -1;
+  for (let i=0; i<N; i++) {
+    if (nowMinutesRaw >= events[i].minutes) currentIndex = i;
+    else break;
+  }
+  if (currentIndex === -1) currentIndex = N - 1; // before first event -> last event is current
+
+  // compute fractional progress between currentIndex and nextIndex (handles wrap)
+  const startM = events[currentIndex].minutes;
+  const nextIndex = (currentIndex + 1) % N;
+  let endM = events[nextIndex].minutes;
+  let nowM = nowMinutesRaw;
+  if (endM <= startM) endM += 24*60;           // wrap to next day
+  if (nowM < startM) nowM += 24*60;            // if before today's start, treat as next-day position
+  const fraction = (nowM - startM) / (endM - startM); // 0..1
+  const fractionalIndex = currentIndex + fraction;
+
+  // Hand angle: center of (fractionalIndex) sector => (fractionalIndex + 0.5) * sliceAngle - PI/2
+  const handAngle = (fractionalIndex + 0.5) * sliceAngle - Math.PI/2;
+
+  // highlight current sector border (thicker)
+  const hiStart = currentIndex * sliceAngle - Math.PI/2;
+  const hiEnd = hiStart + sliceAngle;
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  ctx.arc(0,0, radius - 10, hiStart, hiEnd);
+  ctx.closePath();
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = "rgba(0,0,0,0.6)";
+  ctx.stroke();
+
+  // draw red hand (smooth by using seconds above)
+  ctx.beginPath();
+  ctx.moveTo(0,0);
+  const hx = Math.cos(handAngle) * (radius - 80);
+  const hy = Math.sin(handAngle) * (radius - 80);
+  ctx.lineTo(hx, hy);
+  ctx.lineWidth = 5;
+  ctx.strokeStyle = "red";
+  ctx.lineCap = "round";
+  ctx.stroke();
+
+  // draw small red circle at tip
+  ctx.beginPath();
+  ctx.arc(hx, hy, 8, 0, Math.PI*2);
+  ctx.fillStyle = "red";
+  ctx.fill();
+
+  // draw center knob
+  ctx.beginPath();
+  ctx.arc(0,0,10,0,Math.PI*2);
+  ctx.fillStyle = "#222";
+  ctx.fill();
+
+  ctx.restore();
+}
+
+/* redraw every 300ms so the hand is smooth */
+setInterval(draw, 300);
+draw();
+</script>
 </body>
 </html>
