@@ -46,8 +46,8 @@
 
     function drawClock() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
       ctx.translate(radius, radius);
-      ctx.rotate(-Math.PI / 2);
 
       // Draw outer circle
       ctx.beginPath();
@@ -56,7 +56,7 @@
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      // Draw event labels
+      // Draw timetable events
       ctx.font = "14px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -64,4 +64,23 @@
 
       for (let time in timetable) {
         const [h, m] = time.split(":").map(Number);
-        const totalMinutes
+        const totalMinutes = h * 60 + m;
+        const angle = (totalMinutes / 1440) * 2 * Math.PI - Math.PI / 2; // start at top
+
+        const x = Math.cos(angle) * (radius - 40);
+        const y = Math.sin(angle) * (radius - 40);
+
+        ctx.fillText(timetable[time], x, y);
+      }
+
+      // Draw current time hand
+      const now = new Date();
+      const nowMinutes = now.getHours() * 60 + now.getMinutes();
+      const timeAngle = (nowMinutes / 1440) * 2 * Math.PI - Math.PI / 2;
+
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(timeAngle) * (radius - 60), Math.sin(timeAngle) * (radius - 60));
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 3;
+      c
