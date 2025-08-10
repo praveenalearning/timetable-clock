@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Circular Timetable Clock</title>
+  <title>Symmetric Timetable Clock</title>
   <style>
     body {
       text-align: center;
@@ -16,29 +16,29 @@
   </style>
 </head>
 <body>
-  <h1>Daily Timetable Clock</h1>
+  <h1>Symmetric Timetable Clock</h1>
   <canvas id="clock" width="500" height="500"></canvas>
 
   <script>
-    const timetable = {
-      "05:00": "Yoga",
-      "05:20": "Study",
-      "06:30": "Fresh Up",
-      "07:00": "Physics",
-      "11:00": "Break",
-      "11:10": "Maths",
-      "13:10": "Lunch",
-      "13:30": "Sleep",
-      "13:45": "Study",
-      "14:00": "Maths",
-      "16:00": "Optional",
-      "17:00": "Break",
-      "17:30": "Chemistry",
-      "19:30": "Dinner",
-      "20:00": "Chemistry",
-      "22:10": "Study",
-      "22:30": "Sleep"
-    };
+    const timetable = [
+      ["05:00", "Yoga"],
+      ["05:20", "Study"],
+      ["06:30", "Fresh Up"],
+      ["07:00", "Physics"],
+      ["11:00", "Break"],
+      ["11:10", "Maths"],
+      ["13:10", "Lunch"],
+      ["13:30", "Sleep"],
+      ["13:45", "Study"],
+      ["14:00", "Maths"],
+      ["16:00", "Optional"],
+      ["17:00", "Break"],
+      ["17:30", "Chemistry"],
+      ["19:30", "Dinner"],
+      ["20:00", "Chemistry"],
+      ["22:10", "Study"],
+      ["22:30", "Sleep"]
+    ];
 
     const canvas = document.getElementById("clock");
     const ctx = canvas.getContext("2d");
@@ -49,42 +49,47 @@
       ctx.save();
       ctx.translate(radius, radius);
 
-      // Draw outer circle
+      // Outer circle
       ctx.beginPath();
       ctx.arc(0, 0, radius - 10, 0, 2 * Math.PI);
       ctx.strokeStyle = "#000";
       ctx.lineWidth = 4;
       ctx.stroke();
 
-      // Draw timetable events symmetrically
+      // Draw events evenly spaced
       ctx.font = "12px Arial";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
+      const totalEvents = timetable.length;
 
-      for (let time in timetable) {
-        const [h, m] = time.split(":").map(Number);
-        const totalMinutes = h * 60 + m;
-        const angle = (totalMinutes / 1440) * 2 * Math.PI - Math.PI / 2;
-
+      timetable.forEach((item, index) => {
+        const angle = (index / totalEvents) * 2 * Math.PI - Math.PI / 2;
         const x = Math.cos(angle) * (radius - 40);
         const y = Math.sin(angle) * (radius - 40);
 
         ctx.save();
         ctx.translate(x, y);
-        ctx.rotate(angle + Math.PI / 2); // Rotate so text is upright
+        ctx.rotate(angle + Math.PI / 2);
         ctx.fillStyle = "#000";
-        ctx.fillText(timetable[time], 0, 0);
+        ctx.fillText(item[1], 0, 0);
         ctx.restore();
-      }
+      });
 
-      // Draw current time hand
+      // Draw red hand for current event
       const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      const timeAngle = (nowMinutes / 1440) * 2 * Math.PI - Math.PI / 2;
+      const currentIndex = timetable.findIndex(([time]) => {
+        const [h, m] = time.split(":").map(Number);
+        const nowMinutes = now.getHours() * 60 + now.getMinutes();
+        const eventMinutes = h * 60 + m;
+        return nowMinutes <= eventMinutes;
+      });
+
+      const handIndex = currentIndex === -1 ? 0 : currentIndex;
+      const handAngle = (handIndex / totalEvents) * 2 * Math.PI - Math.PI / 2;
 
       ctx.beginPath();
       ctx.moveTo(0, 0);
-      ctx.lineTo(Math.cos(timeAngle) * (radius - 60), Math.sin(timeAngle) * (radius - 60));
+      ctx.lineTo(Math.cos(handAngle) * (radius - 60), Math.sin(handAngle) * (radius - 60));
       ctx.strokeStyle = "red";
       ctx.lineWidth = 3;
       ctx.stroke();
