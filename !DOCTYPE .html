@@ -41,20 +41,78 @@
     ];
 
     const colors = [
-      "#ff9999", "#ffcc99", "#ffff99", "#ccff99", "#99ff99",
-      "#99ffcc", "#99ffff", "#99ccff", "#9999ff", "#cc99ff",
-      "#ff99ff", "#ff99cc", "#ffccff", "#e6e6e6", "#ffd699",
-      "#d9ffcc", "#c2c2f0", "#f5b7b1", "#aed6f1", "#a3e4d7"
+      "#FF9999", "#FFCC99", "#FFFF99", "#CCFF99", "#99FF99",
+      "#99FFCC", "#99FFFF", "#99CCFF", "#9999FF", "#CC99FF",
+      "#FF99FF", "#FF99CC", "#FFD1DC", "#E6E6FA", "#FFD699",
+      "#D9FFCC", "#C2C2F0", "#F5B7B1", "#AED6F1", "#A3E4D7"
     ];
 
     const canvas = document.getElementById("clock");
     const ctx = canvas.getContext("2d");
     const radius = canvas.width / 2;
     const totalEvents = timetable.length;
+    const sliceAngle = (2 * Math.PI) / totalEvents;
 
-    function getCurrentEventIndex() {
+    function drawClock() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.save();
+      ctx.translate(radius, radius);
+
+      // Draw sectors
+      timetable.forEach((item, index) => {
+        const startAngle = index * sliceAngle - Math.PI / 2;
+        const endAngle = startAngle + sliceAngle;
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, radius - 10, startAngle, endAngle);
+        ctx.closePath();
+        ctx.fillStyle = colors[index % colors.length];
+        ctx.fill();
+        ctx.strokeStyle = "black";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Time label at boundary
+        const timeX = Math.cos(startAngle) * (radius - 20);
+        const timeY = Math.sin(startAngle) * (radius - 20);
+        ctx.font = "14px Arial";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "black";
+        ctx.fillText(item[0], timeX, timeY);
+
+        // Event label inside sector
+        const midAngle = startAngle + sliceAngle / 2;
+        const eventX = Math.cos(midAngle) * (radius / 2);
+        const eventY = Math.sin(midAngle) * (radius / 2);
+        ctx.save();
+        ctx.translate(eventX, eventY);
+        ctx.rotate(midAngle + Math.PI / 2);
+        ctx.font = "bold 14px Arial";
+        ctx.fillStyle = "black";
+        ctx.fillText(item[1], 0, 0);
+        ctx.restore();
+      });
+
+      // Draw moving red hand based on real time
       const now = new Date();
-      const nowMinutes = now.getHours() * 60 + now.getMinutes();
-      let currentIndex = 0;
+      const totalMinutes = now.getHours() * 60 + now.getMinutes();
+      const dayFraction = totalMinutes / (24 * 60);
+      const handAngle = dayFraction * 2 * Math.PI - Math.PI / 2;
 
-      for (let i = 0; i < totalEv
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(Math.cos(handAngle) * (radius - 60), Math.sin(handAngle) * (radius - 60));
+      ctx.strokeStyle = "red";
+      ctx.lineWidth = 4;
+      ctx.stroke();
+
+      ctx.restore();
+    }
+
+    setInterval(drawClock, 1000);
+    drawClock();
+  </script>
+</body>
+</html>
